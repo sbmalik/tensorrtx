@@ -22,11 +22,13 @@ public:
 
     void inferenceOnce(IExecutionContext &context, float *input, float *output, int input_h, int input_w);
 
+    void infer(std::string file);
+
 private:
     Logger gLogger;
-    std::shared_ptr<nvinfer1::IRuntime> mRuntime;
-    std::shared_ptr<nvinfer1::ICudaEngine> mEngine;
-    std::shared_ptr<nvinfer1::IExecutionContext> mContext;
+    std::shared_ptr <nvinfer1::IRuntime> mRuntime;
+    std::shared_ptr <nvinfer1::ICudaEngine> mEngine;
+    std::shared_ptr <nvinfer1::IExecutionContext> mContext;
     DataType dt = DataType::kFLOAT;
 
     const char *input_name_ = "input";

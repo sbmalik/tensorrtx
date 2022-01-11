@@ -1,9 +1,11 @@
 #include "xtestnet.h"
 
+#define batchSize 1
+
 XTestNet::~XTestNet() {}
 
 ICudaEngine *XTestNet::createEngine(IBuilder *builder, IBuilderConfig *config) {
-    std::map<std::string, Weights> weightMap = loadWeights("../xtestnet.wts");
+    std::map <std::string, Weights> weightMap = loadWeights("../xtestnet.wts");
 
     INetworkDefinition *network = builder->createNetworkV2(0U);
 
@@ -81,8 +83,93 @@ void XTestNet::serializeEngine() {
     return;
 }
 
-void XTestNet::deserializeEngine() {}
+void XTestNet::deserializeEngine() {
+    std::ifstream file("../xtestnet.plan", std::ios::binary | std::ios::in);
+    if (file.good()) {
+        file.seekg(0, file.end);
+        size_t size = file.tellg();
+        file.seekg(0, file.beg);
+        char *trtModelStream = new char[size];
+        assert(trtModelStream);
+        file.read(trtModelStream, size);
+        file.close();
+        mEngine = std::shared_ptr<nvinfer1::ICudaEngine>(mRuntime->deserializeCudaEngine(trtModelStream, size),
+                                                         InferDeleter());
+        assert(mEngine != nullptr);
+    }
+}
 
-void XTestNet::init() {}
+void XTestNet::init() {
+    mRuntime = std::shared_ptr<nvinfer1::IRuntime>(createInferRuntime(gLogger), InferDeleter());
+    assert(mRuntime != nullptr);
 
-void XTestNet::inferenceOnce(IExecutionContext &context, float *input, float *output, int input_h, int input_w) {}
+    std::cout << "Deserialize Engine" << std::endl;
+    deserializeEngine();
+
+    mContext = std::shared_ptr<nvinfer1::IExecutionContext>(mEngine->createExecutionContext(), InferDeleter());
+    assert(mContext != nullptr);
+
+    float input[3 * 28 * 28];
+    for (int i = 0; i < 3 * 28 * 28; i++)
+        input[i] = 1.0;
+
+    float output[10];
+    for (int i = 0; i < 10; i++)
+        output[i] = 1.0;
+
+    // mContext->setOptimizationProfile(0);
+    std::cout << "Finished init" << std::endl;
+    inferenceOnce(*mContext, input, output, 28, 28);
+
+
+    std::cout << "\nOutputs:\n";
+    for (auto &ops: output)
+        std::cout << ops << "--";
+    std::cout << std::endl;
+}
+
+void XTestNet::inferenceOnce(IExecutionContext &context, float *input, float *output, int input_h, int input_w) {
+    // Get engine from the context
+    const ICudaEngine &engine = context.getEngine();
+
+    // Pointers to input and output device buffers to pass to engine.
+    // Engine requires exactly IEngine::getNbBindings() number of buffers.
+    assert(engine.getNbBindings() == 2);
+    void *buffers[2];
+
+    // In order to bind the buffers, we need to know the names of the input and output tensors.
+    // Note that indices are guaranteed to be less than IEngine::getNbBindings()
+    const int inputIndex = engine.getBindingIndex(input_name_);
+    const int outputIndex = engine.getBindingIndex(output_name_);
+
+    context.setBindingDimensions(inputIndex, Dims3(3, input_h, input_w));
+
+    // Create GPU buffers on device -- allocate memory for input and output
+    CHECK(cudaMalloc(&buffers[inputIndex], batchSize * 3 * input_h * input_w * sizeof(float)));
+    CHECK(cudaMalloc(&buffers[outputIndex], batchSize * 10 * sizeof(float)));
+
+    // create CUDA stream for simultaneous CUDA operations
+    cudaStream_t stream;
+    CHECK(cudaStreamCreate(&stream));
+
+    // copy input from host (CPU) to device (GPU)  in stream
+    CHECK(cudaMemcpyAsync(buffers[inputIndex], input, batchSize * input_h * input_w * sizeof(float),
+                          cudaMemcpyHostToDevice,
+                          stream));
+
+    // execute inference using context provided by engine
+    context.enqueue(1, buffers, stream, nullptr);
+
+    // copy output back from device (GPU) to host (CPU)
+    CHECK(cudaMemcpyAsync(output, buffers[outputIndex], batchSize * 10 * sizeof(float), cudaMemcpyDeviceToHost,
+                          stream));
+
+    // synchronize the stream to prevent issues
+    //      (block CUDA and wait for CUDA operations to be completed)
+    cudaStreamSynchronize(stream);
+
+    // Release stream and buffers (memory)
+    cudaStreamDestroy(stream);
+    CHECK(cudaFree(buffers[inputIndex]));
+    CHECK(cudaFree(buffers[outputIndex]));
+}

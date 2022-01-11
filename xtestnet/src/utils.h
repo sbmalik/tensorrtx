@@ -20,8 +20,18 @@
 
 using namespace nvinfer1;
 
-std::map<std::string, Weights> loadWeights(const std::string file);
+std::map <std::string, Weights> loadWeights(const std::string file);
 
-void printWeightKeys(const std::map<std::string, Weights> *mp);
+void printWeightKeys(const std::map <std::string, Weights> *mp);
+
+// <============== Operator =============>
+struct InferDeleter {
+    template<typename T>
+    void operator()(T *obj) const {
+        if (obj) {
+            obj->destroy();
+        }
+    }
+};
 
 #endif //XTESTNET_UTILS_H
