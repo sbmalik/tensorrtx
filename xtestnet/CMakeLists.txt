@@ -24,7 +24,8 @@ file(GLOB SOURCE_FILES "src/*.h" "src/*.cpp")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Ofast -Wfatal-errors -D_MWAITXINTRIN_H_INCLUDED")
 #
 add_executable(xtestnet ${SOURCE_FILES} main.cpp)
-#add_executable(xtestnet utils.cpp main.cpp )
+
+target_link_libraries(xtestnet nvinfer)
 
 
 add_definitions(-O2 -pthread)

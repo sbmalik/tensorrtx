@@ -33,7 +33,7 @@ std::map<std::string, Weights> loadWeights(const std::string file) {
         wt.count = size;
         weightMap[name] = wt;
     }
-    std::cout << "Finish load weight" << std::endl;
+    std::cout << "[INFO]: Finish loading weight..." << std::endl;
     return weightMap;
 }
 

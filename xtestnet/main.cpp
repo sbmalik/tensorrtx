@@ -1,6 +1,6 @@
-#include "src/utils.h"
+#include "src/xtestnet.h"
 
 int main(int argc, char **argv) {
-    std::map <std::string, Weights> weightsVals = loadWeights("../xtestnet.wts");
-    printWeightKeys(&weightsVals);
+    XTestNet xTestNet = XTestNet();
+    xTestNet.serializeEngine();
 }
