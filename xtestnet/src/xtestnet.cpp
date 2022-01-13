@@ -5,7 +5,7 @@
 XTestNet::~XTestNet() {}
 
 ICudaEngine *XTestNet::createEngine(IBuilder *builder, IBuilderConfig *config) {
-    std::map <std::string, Weights> weightMap = loadWeights("../xtestnet.wts");
+    std::map<std::string, Weights> weightMap = loadWeights("../xtestnet.wts");
 
     INetworkDefinition *network = builder->createNetworkV2(0U);
 
@@ -38,8 +38,25 @@ ICudaEngine *XTestNet::createEngine(IBuilder *builder, IBuilderConfig *config) {
     ISoftMaxLayer *softmax = network->addSoftMax(*fc->getOutput(0));
     assert(softmax);
 
+    // /////////////////////////
+    // ADDED CUSTOM PLUGIN /////
+    // /////////////////////////
+    //auto creator = getPluginRegistry()->registerCreator();
+    auto creator = getPluginRegistry()->getPluginCreator("MPlugin_TRT", "1");
+    assert(creator && "Plugin failed");
+    //PluginFieldCollection pfc;
+    //IPluginV2 *pluginObj = creator->createPlugin("MPlugin", &pfc);
+
+    //ITensor *inputTensors[] = {softmax->getOutput(0)};
+    //auto mPluginLayer = network->addPluginV2(inputTensors, 1, *pluginObj);
+    //assert(mPluginLayer);
+
+//    mPluginLayer->getOutput(0)->setName(output_name_);
+//    network->markOutput(*mPluginLayer->getOutput(0));
+
     softmax->getOutput(0)->setName(output_name_);
     network->markOutput(*softmax->getOutput(0));
+    //pluginObj->destroy();
 
     builder->setMaxBatchSize(1);
     config->setMaxWorkspaceSize(1 << 20);
@@ -58,6 +75,7 @@ ICudaEngine *XTestNet::createEngine(IBuilder *builder, IBuilderConfig *config) {
 void XTestNet::serializeEngine() {
     IBuilder *builder = createInferBuilder(gLogger);
     IBuilderConfig *config = builder->createBuilderConfig();
+
 
     // Create Engine
     ICudaEngine *engine = createEngine(builder, config);

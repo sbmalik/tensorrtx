@@ -2,6 +2,7 @@
 #define XPRAC_MPLUGIN_H
 
 #include "NvInfer.h"
+#include "NvInferPlugin.h"
 #include "iostream"
 #include "cassert"
 #include "vector"
@@ -12,7 +13,7 @@ namespace MPlugin {
 }
 
 namespace nvinfer1 {
-    class MPlugin : public IPluginV2 {
+    class MPlugin : public IPluginV2Ext {
     public:
         MPlugin(const char *name);
 
@@ -29,7 +30,8 @@ namespace nvinfer1 {
 
         Dims getOutputDimensions(int index, const Dims *inputs, int nbInputDims) noexcept override;
 
-//        DataType getOutputDataType(int index, const nvinfer1::DataType *inputTypes, int nbInputs) const override;
+        DataType
+        getOutputDataType(int index, const nvinfer1::DataType *inputTypes, int nbInputs) const noexcept override;
 
         bool supportsFormat(DataType type, PluginFormat format) const noexcept override;
 
@@ -62,19 +64,26 @@ namespace nvinfer1 {
 
         const char *getPluginNamespace() const noexcept override;
 
-//        void configurePlugin(const PluginTensorDesc *in, int nbInput,
-//                             const PluginTensorDesc *out, int nbOutput) override;
-        virtual void
-        configureWithFormat(Dims const *inputDims, int32_t nbInputs, Dims const *outputDims, int32_t nbOutputs,
-                            DataType type, PluginFormat format, int32_t maxBatchSize) noexcept;
+        void configurePlugin(Dims const *inputDims, int32_t nbInputs, Dims const *outputDims, int32_t nbOutputs,
+                             DataType const *inputTypes, DataType const *outputTypes, bool const *inputIsBroadcast,
+                             bool const *outputIsBroadcast, PluginFormat floatFormat,
+                             int32_t maxBatchSize) noexcept override;
+//        virtual void
+//        configureWithFormat(Dims const *inputDims, int32_t nbInputs, Dims const *outputDims, int32_t nbOutputs,
+//                            DataType type, PluginFormat format, int32_t maxBatchSize) noexcept;
 
-        virtual int32_t enqueue(int32_t batchSize, void const *const *inputs, void *const *outputs, void *workspace,
-                                cudaStream_t stream) noexcept override;
+        int32_t enqueue(int32_t batchSize, void const *const *inputs, void *const *outputs, void *workspace,
+                                cudaStream_t stream)  noexcept override;
 
         /* For Broadcast support
          * -- canBroadcastInputAcrossBatch()
          * -- isOutputBroadcastAcrossBatch
          * */
+        bool isOutputBroadcastAcrossBatch(
+                int32_t outputIndex, bool const *inputIsBroadcasted, int32_t nbInputs) const noexcept override;
+
+        bool canBroadcastInputAcrossBatch(int32_t inputIndex) const noexcept override;
+
     private:
         const std::string mLayerName;
         size_t mCopySize;
@@ -127,7 +136,7 @@ namespace nvinfer1 {
         static std::vector<PluginField> mPluginAttributes;
     };
 
-    REGISTER_TENSORRT_PLUGIN(MPluginCreator);
+
 };
 
 

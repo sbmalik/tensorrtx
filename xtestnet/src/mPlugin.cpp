@@ -19,11 +19,13 @@ using namespace MPlugin;
 
 static const char *M_PLUGIN_VERSION{"1"};
 static const char *M_PLUGIN_NAME{"MPlugin_TRT"};
-
 namespace nvinfer1 {
     // ///////////////////////////////////////////////////////////////////////////
     // Custom Plugin /////////////////////////////////////////////////////////////
     // ///////////////////////////////////////////////////////////////////////////
+
+    REGISTER_TENSORRT_PLUGIN(MPluginCreator);
+
     MPlugin::MPlugin(const char *name)
             : mLayerName(name) {
     }
@@ -59,10 +61,10 @@ namespace nvinfer1 {
         return 0;
     }
 
-//    DataType MPlugin::getOutputDataType(int index, const nvinfer1::DataType *inputTypes, int nbInputs) const noexcept {
-//        assert(index == 0);
-//        return DataType::kFLOAT;
-//    }
+    DataType MPlugin::getOutputDataType(int index, const nvinfer1::DataType *inputTypes, int nbInputs) const noexcept {
+        assert(index == 0);
+        return DataType::kFLOAT;
+    }
 
     void MPlugin::serialize(void *buffer) const noexcept {
         char *d = reinterpret_cast<char *>(buffer), *a = d;
@@ -100,15 +102,35 @@ namespace nvinfer1 {
         return (type == DataType::kFLOAT && format == PluginFormat::kCHW32);
     }
 
-    void
-    MPlugin::configureWithFormat(Dims const *inputDims, int32_t nbInputs, Dims const *outputDims, int32_t nbOutputs,
-                                 DataType type, PluginFormat format, int32_t maxBatchSize) noexcept {
-
+    IPluginV2Ext *MPlugin::clone() const noexcept {
+        auto *plugin = new MPlugin(mLayerName, mCopySize);
+        plugin->setPluginNamespace(mNamespace.c_str());
+        return plugin;
     }
+
+//    void
+//    MPlugin::configureWithFormat(Dims const *inputDims, int32_t nbInputs, Dims const *outputDims, int32_t nbOutputs,
+//                                 DataType type, PluginFormat format, int32_t maxBatchSize) noexcept {
+//
+//    }
+    void configurePlugin(Dims const *inputDims, int32_t nbInputs, Dims const *outputDims, int32_t nbOutputs,
+                         DataType const *inputTypes, DataType const *outputTypes, bool const *inputIsBroadcast,
+                         bool const *outputIsBroadcast, PluginFormat floatFormat,
+                         int32_t maxBatchSize) noexcept {
+    }
+
+    bool canBroadcastInputAcrossBatch(int32_t inputIndex) noexcept {
+        return false;
+    }
+
+    bool isOutputBroadcastAcrossBatch(
+            int32_t outputIndex, bool const *inputIsBroadcasted, int32_t nbInputs) noexcept {
+        return false;
+    };
 
     int32_t MPlugin::enqueue(int32_t batchSize, void const *const *inputs, void *const *outputs, void *workspace,
                              cudaStream_t stream) noexcept {
-        float *output = reinterpret_cast<float *>(outputs[0]);
+        auto *output = reinterpret_cast<float *>(outputs[0]);
         // expand to batch size
         for (int i = 0; i < batchSize; i++) {
             auto ret = cudaMemcpyAsync(output, inputs[0], mCopySize, cudaMemcpyDeviceToDevice, stream);
@@ -118,19 +140,25 @@ namespace nvinfer1 {
                 std::cout << "Cuda failure: " << ret;
                 abort();
             }
+            cudaStreamSynchronize(stream);
+            cudaDeviceSynchronize();
 
         }
         return 0;
     }
 
+
 // ///////////////////////////////////////////////////////////////////////////
 // Plugin Creator ////////////////////////////////////////////////////////////
 // ///////////////////////////////////////////////////////////////////////////
     PluginFieldCollection MPluginCreator::mFC{};
+    std::vector<PluginField> MPluginCreator::mPluginAttributes;
+
 
     MPluginCreator::MPluginCreator() {
-        mFC.nbFields = 0;
-        mFC.fields = nullptr;
+        mPluginAttributes.clear();
+        mFC.nbFields = mPluginAttributes.size();
+        mFC.fields = mPluginAttributes.data();
     }
 
     const char *MPluginCreator::getPluginName() const noexcept {

@@ -5,6 +5,8 @@
 #include "logging.h"
 #include "utils.h"
 #include "layers.h"
+#include "mPlugin.h"
+
 
 class XTestNet {
 public:
@@ -26,9 +28,9 @@ public:
 
 private:
     Logger gLogger;
-    std::shared_ptr <nvinfer1::IRuntime> mRuntime;
-    std::shared_ptr <nvinfer1::ICudaEngine> mEngine;
-    std::shared_ptr <nvinfer1::IExecutionContext> mContext;
+    std::shared_ptr<nvinfer1::IRuntime> mRuntime;
+    std::shared_ptr<nvinfer1::ICudaEngine> mEngine;
+    std::shared_ptr<nvinfer1::IExecutionContext> mContext;
     DataType dt = DataType::kFLOAT;
 
     const char *input_name_ = "input";

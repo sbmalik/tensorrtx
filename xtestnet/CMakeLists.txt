@@ -10,7 +10,7 @@ set(CMAKE_BUILD_TYPE Debug)
 
 find_package(CUDA REQUIRED)
 
-#include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
 # cuda
@@ -28,14 +28,14 @@ link_directories(/usr/lib/x86_64-linux-gnu/)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Ofast -Wfatal-errors -D_MWAITXINTRIN_H_INCLUDED")
 
 # plugin
-cuda_add_library(myplugins SHARED ${PROJECT_SOURCE_DIR}/src/mPlugin.cpp)
-target_link_libraries(myplugins nvinfer cudart)
+cuda_add_library(myplugin SHARED ${PROJECT_SOURCE_DIR}/src/mPlugin.cpp)
+target_link_libraries(myplugin nvinfer cudart)
 
-add_executable(xtestnet ${PROJECT_SOURCE_DIR}/src/utils.cpp ${PROJECT_SOURCE_DIR}/src/layers.cpp ${PROJECT_SOURCE_DIR}/src/xtestnet.cpp main.cpp)
+cuda_add_executable(xtestnet ${PROJECT_SOURCE_DIR}/src/utils.cpp ${PROJECT_SOURCE_DIR}/src/layers.cpp ${PROJECT_SOURCE_DIR}/src/xtestnet.cpp main.cpp)
 
 target_link_libraries(xtestnet nvinfer)
 target_link_libraries(xtestnet cudart)
-target_link_libraries(xtestnet myplugins)
-
+#target_link_libraries(xtestnet nvinfer_plugin)
+target_link_libraries(xtestnet myplugin)
 
 add_definitions(-O2 -pthread)
