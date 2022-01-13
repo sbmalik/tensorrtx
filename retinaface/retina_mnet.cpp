@@ -18,90 +18,105 @@
 // stuff we know about the network and the input/output blobs
 static const int INPUT_H = decodeplugin::INPUT_H;  // H, W must be able to  be divided by 32.
 static const int INPUT_W = decodeplugin::INPUT_W;;
-static const int OUTPUT_SIZE = (INPUT_H / 8 * INPUT_W / 8 + INPUT_H / 16 * INPUT_W / 16 + INPUT_H / 32 * INPUT_W / 32) * 2  * 15 + 1;
-const char* INPUT_BLOB_NAME = "data";
-const char* OUTPUT_BLOB_NAME = "prob";
+static const int OUTPUT_SIZE =
+        (INPUT_H / 8 * INPUT_W / 8 + INPUT_H / 16 * INPUT_W / 16 + INPUT_H / 32 * INPUT_W / 32) * 2 * 15 + 1;
+const char *INPUT_BLOB_NAME = "data";
+const char *OUTPUT_BLOB_NAME = "prob";
 
 static Logger gLogger;
 
-ILayer* conv_bn(INetworkDefinition *network, std::map<std::string, Weights>& weightMap, ITensor& input, std::string lname, int oup, int s = 1, float leaky = 0.1) {
+ILayer *
+conv_bn(INetworkDefinition *network, std::map <std::string, Weights> &weightMap, ITensor &input, std::string lname,
+        int oup, int s = 1, float leaky = 0.1) {
     Weights emptywts{DataType::kFLOAT, nullptr, 0};
-    IConvolutionLayer* conv1 = network->addConvolutionNd(input, oup, DimsHW{3, 3}, getWeights(weightMap, lname + ".0.weight"), emptywts);
+    IConvolutionLayer *conv1 = network->addConvolutionNd(input, oup, DimsHW{3, 3},
+                                                         getWeights(weightMap, lname + ".0.weight"), emptywts);
     assert(conv1);
     conv1->setStrideNd(DimsHW{s, s});
     conv1->setPaddingNd(DimsHW{1, 1});
-    IScaleLayer* bn1 = addBatchNorm2d(network, weightMap, *conv1->getOutput(0), lname + ".1", 1e-5);
+    IScaleLayer *bn1 = addBatchNorm2d(network, weightMap, *conv1->getOutput(0), lname + ".1", 1e-5);
     auto lr = network->addActivation(*bn1->getOutput(0), ActivationType::kLEAKY_RELU);
     lr->setAlpha(leaky);
     assert(lr);
     return lr;
 }
 
-ILayer* conv_bn_no_relu(INetworkDefinition *network, std::map<std::string, Weights>& weightMap, ITensor& input, std::string lname, int oup, int s = 1) {
+ILayer *conv_bn_no_relu(INetworkDefinition *network, std::map <std::string, Weights> &weightMap, ITensor &input,
+                        std::string lname, int oup, int s = 1) {
     Weights emptywts{DataType::kFLOAT, nullptr, 0};
-    IConvolutionLayer* conv1 = network->addConvolutionNd(input, oup, DimsHW{3, 3}, getWeights(weightMap, lname + ".0.weight"), emptywts);
+    IConvolutionLayer *conv1 = network->addConvolutionNd(input, oup, DimsHW{3, 3},
+                                                         getWeights(weightMap, lname + ".0.weight"), emptywts);
     assert(conv1);
     conv1->setStrideNd(DimsHW{s, s});
     conv1->setPaddingNd(DimsHW{1, 1});
-    IScaleLayer* bn1 = addBatchNorm2d(network, weightMap, *conv1->getOutput(0), lname + ".1", 1e-5);
+    IScaleLayer *bn1 = addBatchNorm2d(network, weightMap, *conv1->getOutput(0), lname + ".1", 1e-5);
     return bn1;
 }
 
-ILayer* conv_bn1X1(INetworkDefinition *network, std::map<std::string, Weights>& weightMap, ITensor& input, std::string lname, int oup, int s = 1, float leaky = 0.1) {
+ILayer *
+conv_bn1X1(INetworkDefinition *network, std::map <std::string, Weights> &weightMap, ITensor &input, std::string lname,
+           int oup, int s = 1, float leaky = 0.1) {
     Weights emptywts{DataType::kFLOAT, nullptr, 0};
-    IConvolutionLayer* conv1 = network->addConvolutionNd(input, oup, DimsHW{1, 1}, getWeights(weightMap, lname + ".0.weight"), emptywts);
+    IConvolutionLayer *conv1 = network->addConvolutionNd(input, oup, DimsHW{1, 1},
+                                                         getWeights(weightMap, lname + ".0.weight"), emptywts);
     assert(conv1);
     conv1->setStrideNd(DimsHW{s, s});
     conv1->setPaddingNd(DimsHW{0, 0});
-    IScaleLayer* bn1 = addBatchNorm2d(network, weightMap, *conv1->getOutput(0), lname + ".1", 1e-5);
+    IScaleLayer *bn1 = addBatchNorm2d(network, weightMap, *conv1->getOutput(0), lname + ".1", 1e-5);
     auto lr = network->addActivation(*bn1->getOutput(0), ActivationType::kLEAKY_RELU);
     lr->setAlpha(leaky);
     assert(lr);
     return lr;
 }
 
-ILayer* conv_dw(INetworkDefinition *network, std::map<std::string, Weights>& weightMap, ITensor& input, std::string lname, int inp, int oup, int s = 1, float leaky = 0.1) {
+ILayer *
+conv_dw(INetworkDefinition *network, std::map <std::string, Weights> &weightMap, ITensor &input, std::string lname,
+        int inp, int oup, int s = 1, float leaky = 0.1) {
     Weights emptywts{DataType::kFLOAT, nullptr, 0};
-    IConvolutionLayer* conv1 = network->addConvolutionNd(input, inp, DimsHW{3, 3}, getWeights(weightMap, lname + ".0.weight"), emptywts);
+    IConvolutionLayer *conv1 = network->addConvolutionNd(input, inp, DimsHW{3, 3},
+                                                         getWeights(weightMap, lname + ".0.weight"), emptywts);
     assert(conv1);
     conv1->setStrideNd(DimsHW{s, s});
     conv1->setPaddingNd(DimsHW{1, 1});
     conv1->setNbGroups(inp);
-    IScaleLayer* bn1 = addBatchNorm2d(network, weightMap, *conv1->getOutput(0), lname + ".1", 1e-5);
+    IScaleLayer *bn1 = addBatchNorm2d(network, weightMap, *conv1->getOutput(0), lname + ".1", 1e-5);
     auto lr1 = network->addActivation(*bn1->getOutput(0), ActivationType::kLEAKY_RELU);
     lr1->setAlpha(leaky);
     assert(lr1);
-    IConvolutionLayer* conv2 = network->addConvolutionNd(*lr1->getOutput(0), oup, DimsHW{1, 1}, getWeights(weightMap, lname + ".3.weight"), emptywts);
+    IConvolutionLayer *conv2 = network->addConvolutionNd(*lr1->getOutput(0), oup, DimsHW{1, 1},
+                                                         getWeights(weightMap, lname + ".3.weight"), emptywts);
     assert(conv2);
-    IScaleLayer* bn2 = addBatchNorm2d(network, weightMap, *conv2->getOutput(0), lname + ".4", 1e-5);
+    IScaleLayer *bn2 = addBatchNorm2d(network, weightMap, *conv2->getOutput(0), lname + ".4", 1e-5);
     auto lr2 = network->addActivation(*bn2->getOutput(0), ActivationType::kLEAKY_RELU);
     lr2->setAlpha(leaky);
     assert(lr2);
     return lr2;
 }
 
-IActivationLayer* ssh(INetworkDefinition *network, std::map<std::string, Weights>& weightMap, ITensor& input, std::string lname, int oup) {
+IActivationLayer *
+ssh(INetworkDefinition *network, std::map <std::string, Weights> &weightMap, ITensor &input, std::string lname,
+    int oup) {
     auto conv3x3 = conv_bn_no_relu(network, weightMap, input, lname + ".conv3X3", oup / 2);
     auto conv5x5_1 = conv_bn(network, weightMap, input, lname + ".conv5X5_1", oup / 4);
     auto conv5x5 = conv_bn_no_relu(network, weightMap, *conv5x5_1->getOutput(0), lname + ".conv5X5_2", oup / 4);
     auto conv7x7 = conv_bn(network, weightMap, *conv5x5_1->getOutput(0), lname + ".conv7X7_2", oup / 4);
     conv7x7 = conv_bn_no_relu(network, weightMap, *conv7x7->getOutput(0), lname + ".conv7x7_3", oup / 4);
-    ITensor* inputTensors[] = {conv3x3->getOutput(0), conv5x5->getOutput(0), conv7x7->getOutput(0)};
+    ITensor *inputTensors[] = {conv3x3->getOutput(0), conv5x5->getOutput(0), conv7x7->getOutput(0)};
     auto cat = network->addConcatenation(inputTensors, 3);
-    IActivationLayer* relu1 = network->addActivation(*cat->getOutput(0), ActivationType::kRELU);
+    IActivationLayer *relu1 = network->addActivation(*cat->getOutput(0), ActivationType::kRELU);
     assert(relu1);
     return relu1;
 }
 
 // Creat the engine using only the API and not any parser.
-ICudaEngine* createEngine(unsigned int maxBatchSize, IBuilder* builder, IBuilderConfig* config, DataType dt) {
-    INetworkDefinition* network = builder->createNetworkV2(0U);
+ICudaEngine *createEngine(unsigned int maxBatchSize, IBuilder *builder, IBuilderConfig *config, DataType dt) {
+    INetworkDefinition *network = builder->createNetworkV2(0U);
 
     // Create input tensor with name INPUT_BLOB_NAME
-    ITensor* data = network->addInput(INPUT_BLOB_NAME, dt, Dims3{3, INPUT_H, INPUT_W});
+    ITensor *data = network->addInput(INPUT_BLOB_NAME, dt, Dims3{3, INPUT_H, INPUT_W});
     assert(data);
 
-    std::map<std::string, Weights> weightMap = loadWeights("../retinaface.wts");
+    std::map <std::string, Weights> weightMap = loadWeights("../retinaface.wts");
     Weights emptywts{DataType::kFLOAT, nullptr, 0};
 
     // ------------- backbone mobilenet0.25  ---------------
@@ -135,12 +150,13 @@ ICudaEngine* createEngine(unsigned int maxBatchSize, IBuilder* builder, IBuilder
     auto output2 = conv_bn1X1(network, weightMap, *stage2->getOutput(0), "fpn.output2", 64);
     auto output3 = conv_bn1X1(network, weightMap, *stage3->getOutput(0), "fpn.output3", 64);
 
-    float *deval = reinterpret_cast<float*>(malloc(sizeof(float) * 64 * 2 * 2));
+    float *deval = reinterpret_cast<float *>(malloc(sizeof(float) * 64 * 2 * 2));
     for (int i = 0; i < 64 * 2 * 2; i++) {
         deval[i] = 1.0;
     }
     Weights deconvwts{DataType::kFLOAT, deval, 64 * 2 * 2};
-    IDeconvolutionLayer* up3 = network->addDeconvolutionNd(*output3->getOutput(0), 64, DimsHW{2, 2}, deconvwts, emptywts);
+    IDeconvolutionLayer *up3 = network->addDeconvolutionNd(*output3->getOutput(0), 64, DimsHW{2, 2}, deconvwts,
+                                                           emptywts);
     assert(up3);
     up3->setStrideNd(DimsHW{2, 2});
     up3->setNbGroups(64);
@@ -149,7 +165,8 @@ ICudaEngine* createEngine(unsigned int maxBatchSize, IBuilder* builder, IBuilder
     output2 = network->addElementWise(*output2->getOutput(0), *up3->getOutput(0), ElementWiseOperation::kSUM);
     output2 = conv_bn(network, weightMap, *output2->getOutput(0), "fpn.merge2", 64);
 
-    IDeconvolutionLayer* up2 = network->addDeconvolutionNd(*output2->getOutput(0), 64, DimsHW{2, 2}, deconvwts, emptywts);
+    IDeconvolutionLayer *up2 = network->addDeconvolutionNd(*output2->getOutput(0), 64, DimsHW{2, 2}, deconvwts,
+                                                           emptywts);
     assert(up2);
     up2->setStrideNd(DimsHW{2, 2});
     up2->setNbGroups(64);
@@ -162,30 +179,48 @@ ICudaEngine* createEngine(unsigned int maxBatchSize, IBuilder* builder, IBuilder
     auto ssh3 = ssh(network, weightMap, *output3->getOutput(0), "ssh3", 64);
 
     //// ------------- Head ---------------
-    auto bbox_head1 = network->addConvolutionNd(*ssh1->getOutput(0), 2 * 4, DimsHW{1, 1}, weightMap["BboxHead.0.conv1x1.weight"], weightMap["BboxHead.0.conv1x1.bias"]);
-    auto bbox_head2 = network->addConvolutionNd(*ssh2->getOutput(0), 2 * 4, DimsHW{1, 1}, weightMap["BboxHead.1.conv1x1.weight"], weightMap["BboxHead.1.conv1x1.bias"]);
-    auto bbox_head3 = network->addConvolutionNd(*ssh3->getOutput(0), 2 * 4, DimsHW{1, 1}, weightMap["BboxHead.2.conv1x1.weight"], weightMap["BboxHead.2.conv1x1.bias"]);
+    auto bbox_head1 = network->addConvolutionNd(*ssh1->getOutput(0), 2 * 4, DimsHW{1, 1},
+                                                weightMap["BboxHead.0.conv1x1.weight"],
+                                                weightMap["BboxHead.0.conv1x1.bias"]);
+    auto bbox_head2 = network->addConvolutionNd(*ssh2->getOutput(0), 2 * 4, DimsHW{1, 1},
+                                                weightMap["BboxHead.1.conv1x1.weight"],
+                                                weightMap["BboxHead.1.conv1x1.bias"]);
+    auto bbox_head3 = network->addConvolutionNd(*ssh3->getOutput(0), 2 * 4, DimsHW{1, 1},
+                                                weightMap["BboxHead.2.conv1x1.weight"],
+                                                weightMap["BboxHead.2.conv1x1.bias"]);
 
-    auto cls_head1 = network->addConvolutionNd(*ssh1->getOutput(0), 2 * 2, DimsHW{1, 1}, weightMap["ClassHead.0.conv1x1.weight"], weightMap["ClassHead.0.conv1x1.bias"]);
-    auto cls_head2 = network->addConvolutionNd(*ssh2->getOutput(0), 2 * 2, DimsHW{1, 1}, weightMap["ClassHead.1.conv1x1.weight"], weightMap["ClassHead.1.conv1x1.bias"]);
-    auto cls_head3 = network->addConvolutionNd(*ssh3->getOutput(0), 2 * 2, DimsHW{1, 1}, weightMap["ClassHead.2.conv1x1.weight"], weightMap["ClassHead.2.conv1x1.bias"]);
+    auto cls_head1 = network->addConvolutionNd(*ssh1->getOutput(0), 2 * 2, DimsHW{1, 1},
+                                               weightMap["ClassHead.0.conv1x1.weight"],
+                                               weightMap["ClassHead.0.conv1x1.bias"]);
+    auto cls_head2 = network->addConvolutionNd(*ssh2->getOutput(0), 2 * 2, DimsHW{1, 1},
+                                               weightMap["ClassHead.1.conv1x1.weight"],
+                                               weightMap["ClassHead.1.conv1x1.bias"]);
+    auto cls_head3 = network->addConvolutionNd(*ssh3->getOutput(0), 2 * 2, DimsHW{1, 1},
+                                               weightMap["ClassHead.2.conv1x1.weight"],
+                                               weightMap["ClassHead.2.conv1x1.bias"]);
 
-    auto lmk_head1 = network->addConvolutionNd(*ssh1->getOutput(0), 2 * 10, DimsHW{1, 1}, weightMap["LandmarkHead.0.conv1x1.weight"], weightMap["LandmarkHead.0.conv1x1.bias"]);
-    auto lmk_head2 = network->addConvolutionNd(*ssh2->getOutput(0), 2 * 10, DimsHW{1, 1}, weightMap["LandmarkHead.1.conv1x1.weight"], weightMap["LandmarkHead.1.conv1x1.bias"]);
-    auto lmk_head3 = network->addConvolutionNd(*ssh3->getOutput(0), 2 * 10, DimsHW{1, 1}, weightMap["LandmarkHead.2.conv1x1.weight"], weightMap["LandmarkHead.2.conv1x1.bias"]);
+    auto lmk_head1 = network->addConvolutionNd(*ssh1->getOutput(0), 2 * 10, DimsHW{1, 1},
+                                               weightMap["LandmarkHead.0.conv1x1.weight"],
+                                               weightMap["LandmarkHead.0.conv1x1.bias"]);
+    auto lmk_head2 = network->addConvolutionNd(*ssh2->getOutput(0), 2 * 10, DimsHW{1, 1},
+                                               weightMap["LandmarkHead.1.conv1x1.weight"],
+                                               weightMap["LandmarkHead.1.conv1x1.bias"]);
+    auto lmk_head3 = network->addConvolutionNd(*ssh3->getOutput(0), 2 * 10, DimsHW{1, 1},
+                                               weightMap["LandmarkHead.2.conv1x1.weight"],
+                                               weightMap["LandmarkHead.2.conv1x1.bias"]);
 
     //// ------------- Decode bbox, conf, landmark ---------------
-    ITensor* inputTensors1[] = {bbox_head1->getOutput(0), cls_head1->getOutput(0), lmk_head1->getOutput(0)};
+    ITensor *inputTensors1[] = {bbox_head1->getOutput(0), cls_head1->getOutput(0), lmk_head1->getOutput(0)};
     auto cat1 = network->addConcatenation(inputTensors1, 3);
-    ITensor* inputTensors2[] = {bbox_head2->getOutput(0), cls_head2->getOutput(0), lmk_head2->getOutput(0)};
+    ITensor *inputTensors2[] = {bbox_head2->getOutput(0), cls_head2->getOutput(0), lmk_head2->getOutput(0)};
     auto cat2 = network->addConcatenation(inputTensors2, 3);
-    ITensor* inputTensors3[] = {bbox_head3->getOutput(0), cls_head3->getOutput(0), lmk_head3->getOutput(0)};
+    ITensor *inputTensors3[] = {bbox_head3->getOutput(0), cls_head3->getOutput(0), lmk_head3->getOutput(0)};
     auto cat3 = network->addConcatenation(inputTensors3, 3);
 
     auto creator = getPluginRegistry()->getPluginCreator("Decode_TRT", "1");
     PluginFieldCollection pfc;
     IPluginV2 *pluginObj = creator->createPlugin("decode", &pfc);
-    ITensor* inputTensors[] = {cat1->getOutput(0), cat2->getOutput(0), cat3->getOutput(0)};
+    ITensor *inputTensors[] = {cat1->getOutput(0), cat2->getOutput(0), cat3->getOutput(0)};
     auto decodelayer = network->addPluginV2(inputTensors, 3, *pluginObj);
     assert(decodelayer);
 
@@ -206,29 +241,28 @@ ICudaEngine* createEngine(unsigned int maxBatchSize, IBuilder* builder, IBuilder
 #endif
 
     std::cout << "Building engine, please wait for a while..." << std::endl;
-    ICudaEngine* engine = builder->buildEngineWithConfig(*network, *config);
+    ICudaEngine *engine = builder->buildEngineWithConfig(*network, *config);
     std::cout << "Build engine successfully!" << std::endl;
 
     // Don't need the network any more
     network->destroy();
 
     // Release host memory
-    for (auto& mem : weightMap)
-    {
-        free((void*)(mem.second.values));
+    for (auto &mem: weightMap) {
+        free((void *) (mem.second.values));
         mem.second.values = NULL;
     }
 
     return engine;
 }
 
-void APIToModel(unsigned int maxBatchSize, IHostMemory** modelStream) {
+void APIToModel(unsigned int maxBatchSize, IHostMemory **modelStream) {
     // Create builder
-    IBuilder* builder = createInferBuilder(gLogger);
-    IBuilderConfig* config = builder->createBuilderConfig();
+    IBuilder *builder = createInferBuilder(gLogger);
+    IBuilderConfig *config = builder->createBuilderConfig();
 
     // Create model to populate the network, then set the outputs and create an engine
-    ICudaEngine* engine = createEngine(maxBatchSize, builder, config, DataType::kFLOAT);
+    ICudaEngine *engine = createEngine(maxBatchSize, builder, config, DataType::kFLOAT);
     assert(engine != nullptr);
 
     // Serialize the engine
@@ -239,13 +273,13 @@ void APIToModel(unsigned int maxBatchSize, IHostMemory** modelStream) {
     builder->destroy();
 }
 
-void doInference(IExecutionContext& context, float* input, float* output, int batchSize) {
-    const ICudaEngine& engine = context.getEngine();
+void doInference(IExecutionContext &context, float *input, float *output, int batchSize) {
+    const ICudaEngine &engine = context.getEngine();
 
     // Pointers to input and output device buffers to pass to engine.
     // Engine requires exactly IEngine::getNbBindings() number of buffers.
     assert(engine.getNbBindings() == 2);
-    void* buffers[2];
+    void *buffers[2];
 
     // In order to bind the buffers, we need to know the names of the input and output tensors.
     // Note that indices are guaranteed to be less than IEngine::getNbBindings()
@@ -261,9 +295,11 @@ void doInference(IExecutionContext& context, float* input, float* output, int ba
     CHECK(cudaStreamCreate(&stream));
 
     // DMA input batch data to device, infer on the batch asynchronously, and DMA output back to host
-    CHECK(cudaMemcpyAsync(buffers[inputIndex], input, batchSize * 3 * INPUT_H * INPUT_W * sizeof(float), cudaMemcpyHostToDevice, stream));
+    CHECK(cudaMemcpyAsync(buffers[inputIndex], input, batchSize * 3 * INPUT_H * INPUT_W * sizeof(float),
+                          cudaMemcpyHostToDevice, stream));
     context.enqueue(batchSize, buffers, stream, nullptr);
-    CHECK(cudaMemcpyAsync(output, buffers[outputIndex], batchSize * OUTPUT_SIZE * sizeof(float), cudaMemcpyDeviceToHost, stream));
+    CHECK(cudaMemcpyAsync(output, buffers[outputIndex], batchSize * OUTPUT_SIZE * sizeof(float), cudaMemcpyDeviceToHost,
+                          stream));
     cudaStreamSynchronize(stream);
 
     // Release stream and buffers
@@ -272,7 +308,7 @@ void doInference(IExecutionContext& context, float* input, float* output, int ba
     CHECK(cudaFree(buffers[outputIndex]));
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     if (argc != 2) {
         std::cerr << "arguments not right!" << std::endl;
         std::cerr << "./retina_mnet -s   // serialize model to plan file" << std::endl;
@@ -286,7 +322,7 @@ int main(int argc, char** argv) {
     size_t size{0};
 
     if (std::string(argv[1]) == "-s") {
-        IHostMemory* modelStream{nullptr};
+        IHostMemory *modelStream{nullptr};
         APIToModel(BATCH_SIZE, &modelStream);
         assert(modelStream != nullptr);
 
@@ -295,7 +331,7 @@ int main(int argc, char** argv) {
             std::cerr << "could not open plan output file" << std::endl;
             return -1;
         }
-        p.write(reinterpret_cast<const char*>(modelStream->data()), modelStream->size());
+        p.write(reinterpret_cast<const char *>(modelStream->data()), modelStream->size());
         modelStream->destroy();
         return 1;
     } else if (std::string(argv[1]) == "-d") {
@@ -333,12 +369,12 @@ int main(int argc, char** argv) {
         }
     }
 
-    IRuntime* runtime = createInferRuntime(gLogger);
+    IRuntime *runtime = createInferRuntime(gLogger);
     assert(runtime != nullptr);
-    ICudaEngine* engine = runtime->deserializeCudaEngine(trtModelStream, size);
+    ICudaEngine *engine = runtime->deserializeCudaEngine(trtModelStream, size);
     //ICudaEngine* engine = runtime->deserializeCudaEngine(trtModelStream, size, nullptr);
     assert(engine != nullptr);
-    IExecutionContext* context = engine->createExecutionContext();
+    IExecutionContext *context = engine->createExecutionContext();
     assert(context != nullptr);
 
     // Run inference
@@ -349,7 +385,7 @@ int main(int argc, char** argv) {
     std::cout << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << "us" << std::endl;
 
     for (int b = 0; b < BATCH_SIZE; b++) {
-        std::vector<decodeplugin::Detection> res;
+        std::vector <decodeplugin::Detection> res;
         nms(res, &prob[b * OUTPUT_SIZE], IOU_THRESH);
         std::cout << "number of detections -> " << prob[b * OUTPUT_SIZE] << std::endl;
         std::cout << " -> " << prob[b * OUTPUT_SIZE + 10] << std::endl;
@@ -361,7 +397,8 @@ int main(int argc, char** argv) {
             cv::rectangle(tmp, r, cv::Scalar(0x27, 0xC1, 0x36), 2);
             //cv::putText(tmp, std::to_string((int)(res[j].class_confidence * 100)) + "%", cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 1);
             for (int k = 0; k < 10; k += 2) {
-                cv::circle(tmp, cv::Point(res[j].landmark[k], res[j].landmark[k + 1]), 1, cv::Scalar(255 * (k > 2), 255 * (k > 0 && k < 8), 255 * (k < 6)), 4);
+                cv::circle(tmp, cv::Point(res[j].landmark[k], res[j].landmark[k + 1]), 1,
+                           cv::Scalar(255 * (k > 2), 255 * (k > 0 && k < 8), 255 * (k < 6)), 4);
             }
         }
         cv::imwrite(std::to_string(b) + "_result.jpg", tmp);

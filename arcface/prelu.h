@@ -5,103 +5,102 @@
 #include <vector>
 #include "NvInfer.h"
 
-namespace nvinfer1
-{
-    class PReluPlugin: public IPluginV2IOExt
-    {
-        public:
-            PReluPlugin(const std::vector<float>& gamma);
-            PReluPlugin(const void* data, size_t length);
+namespace nvinfer1 {
+    class PReluPlugin : public IPluginV2IOExt {
+    public:
+        PReluPlugin(const std::vector<float> &gamma);
 
-            ~PReluPlugin();
+        PReluPlugin(const void *data, size_t length);
 
-            int getNbOutputs() const override
-            {
-                return 1;
-            }
+        ~PReluPlugin();
 
-            Dims getOutputDimensions(int index, const Dims* inputs, int nbInputDims) override;
+        int getNbOutputs() const override {
+            return 1;
+        }
 
-            int initialize() override;
+        Dims getOutputDimensions(int index, const Dims *inputs, int nbInputDims) override;
 
-            virtual void terminate() override {};
+        int initialize() override;
 
-            virtual size_t getWorkspaceSize(int maxBatchSize) const override { return 0;}
+        virtual void terminate() override {};
 
-            virtual int enqueue(int batchSize, const void*const * inputs, void** outputs, void* workspace, cudaStream_t stream) override;
+        virtual size_t getWorkspaceSize(int maxBatchSize) const override { return 0; }
 
-            virtual size_t getSerializationSize() const override;
+        virtual int enqueue(int batchSize, const void *const *inputs, void **outputs, void *workspace,
+                            cudaStream_t stream) override;
 
-            virtual void serialize(void* buffer) const override;
+        virtual size_t getSerializationSize() const override;
 
-            bool supportsFormatCombination(int pos, const PluginTensorDesc* inOut, int nbInputs, int nbOutputs) const override {
-                return inOut[pos].format == TensorFormat::kLINEAR && inOut[pos].type == DataType::kFLOAT;
-            }
+        virtual void serialize(void *buffer) const override;
 
-            const char* getPluginType() const override;
+        bool
+        supportsFormatCombination(int pos, const PluginTensorDesc *inOut, int nbInputs, int nbOutputs) const override {
+            return inOut[pos].format == TensorFormat::kLINEAR && inOut[pos].type == DataType::kFLOAT;
+        }
 
-            const char* getPluginVersion() const override;
+        const char *getPluginType() const override;
 
-            void destroy() override;
+        const char *getPluginVersion() const override;
 
-            IPluginV2IOExt* clone() const override;
+        void destroy() override;
 
-            void setPluginNamespace(const char* pluginNamespace) override;
+        IPluginV2IOExt *clone() const override;
 
-            const char* getPluginNamespace() const override;
+        void setPluginNamespace(const char *pluginNamespace) override;
 
-            DataType getOutputDataType(int index, const nvinfer1::DataType* inputTypes, int nbInputs) const override;
+        const char *getPluginNamespace() const override;
 
-            bool isOutputBroadcastAcrossBatch(int outputIndex, const bool* inputIsBroadcasted, int nbInputs) const override;
+        DataType getOutputDataType(int index, const nvinfer1::DataType *inputTypes, int nbInputs) const override;
 
-            bool canBroadcastInputAcrossBatch(int inputIndex) const override;
+        bool isOutputBroadcastAcrossBatch(int outputIndex, const bool *inputIsBroadcasted, int nbInputs) const override;
 
-            void attachToContext(
-                    cudnnContext* cudnnContext, cublasContext* cublasContext, IGpuAllocator* gpuAllocator) override;
+        bool canBroadcastInputAcrossBatch(int inputIndex) const override;
 
-            void configurePlugin(const PluginTensorDesc* in, int nbInput, const PluginTensorDesc* out, int nbOutput) override;
+        void attachToContext(
+                cudnnContext *cudnnContext, cublasContext *cublasContext, IGpuAllocator *gpuAllocator) override;
 
-            void detachFromContext() override;
+        void
+        configurePlugin(const PluginTensorDesc *in, int nbInput, const PluginTensorDesc *out, int nbOutput) override;
 
-            int input_size_;
-        private:
-            void forwardGpu(const float *const * inputs, float* output, cudaStream_t stream, int batchSize = 1);
-            int thread_count_ = 256;
-            std::vector<float> gamma_;
-            const char* mPluginNamespace;
+        void detachFromContext() override;
+
+        int input_size_;
+    private:
+        void forwardGpu(const float *const *inputs, float *output, cudaStream_t stream, int batchSize = 1);
+
+        int thread_count_ = 256;
+        std::vector<float> gamma_;
+        const char *mPluginNamespace;
     };
 
-    class PReluPluginCreator : public IPluginCreator
-    {
-        public:
-            PReluPluginCreator();
+    class PReluPluginCreator : public IPluginCreator {
+    public:
+        PReluPluginCreator();
 
-            ~PReluPluginCreator() override = default;
+        ~PReluPluginCreator() override = default;
 
-            const char* getPluginName() const override;
+        const char *getPluginName() const override;
 
-            const char* getPluginVersion() const override;
+        const char *getPluginVersion() const override;
 
-            const PluginFieldCollection* getFieldNames() override;
+        const PluginFieldCollection *getFieldNames() override;
 
-            IPluginV2IOExt* createPlugin(const char* name, const PluginFieldCollection* fc) override;
+        IPluginV2IOExt *createPlugin(const char *name, const PluginFieldCollection *fc) override;
 
-            IPluginV2IOExt* deserializePlugin(const char* name, const void* serialData, size_t serialLength) override;
+        IPluginV2IOExt *deserializePlugin(const char *name, const void *serialData, size_t serialLength) override;
 
-            void setPluginNamespace(const char* libNamespace) override
-            {
-                mNamespace = libNamespace;
-            }
+        void setPluginNamespace(const char *libNamespace) override {
+            mNamespace = libNamespace;
+        }
 
-            const char* getPluginNamespace() const override
-            {
-                return mNamespace.c_str();
-            }
+        const char *getPluginNamespace() const override {
+            return mNamespace.c_str();
+        }
 
-        private:
-            std::string mNamespace;
-            static PluginFieldCollection mFC;
-            static std::vector<PluginField> mPluginAttributes;
+    private:
+        std::string mNamespace;
+        static PluginFieldCollection mFC;
+        static std::vector <PluginField> mPluginAttributes;
     };
 };
 #endif 

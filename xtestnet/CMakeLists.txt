@@ -22,15 +22,20 @@ include_directories(/usr/include/x86_64-linux-gnu/)
 link_directories(/usr/lib/x86_64-linux-gnu/)
 
 # create executable
-file(GLOB SOURCE_FILES "src/*.h" "src/*.cpp")
+#file(GLOB SOURCE_FILES "src/*.h" "src/*.cpp")
 #file(GLOB SOURCE_FILES "*.h" "*.cpp")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Ofast -Wfatal-errors -D_MWAITXINTRIN_H_INCLUDED")
-#
-add_executable(xtestnet ${SOURCE_FILES} main.cpp)
+
+# plugin
+cuda_add_library(myplugins SHARED ${PROJECT_SOURCE_DIR}/src/mPlugin.cpp)
+target_link_libraries(myplugins nvinfer cudart)
+
+add_executable(xtestnet ${PROJECT_SOURCE_DIR}/src/utils.cpp ${PROJECT_SOURCE_DIR}/src/layers.cpp ${PROJECT_SOURCE_DIR}/src/xtestnet.cpp main.cpp)
 
 target_link_libraries(xtestnet nvinfer)
 target_link_libraries(xtestnet cudart)
+target_link_libraries(xtestnet myplugins)
 
 
 add_definitions(-O2 -pthread)

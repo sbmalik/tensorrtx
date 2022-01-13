@@ -1,11 +1,11 @@
 #include "preprocess.h"
 #include <opencv2/opencv.hpp>
 
-__global__ void warpaffine_kernel( 
-    uint8_t* src, int src_line_size, int src_width, 
-    int src_height, float* dst, int dst_width, 
-    int dst_height, uint8_t const_value_st,
-    AffineMatrix d2s, int edge) {
+__global__ void warpaffine_kernel(
+        uint8_t *src, int src_line_size, int src_width,
+        int src_height, float *dst, int dst_width,
+        int dst_height, uint8_t const_value_st,
+        AffineMatrix d2s, int edge) {
     int position = blockDim.x * blockIdx.x + threadIdx.x;
     if (position >= edge) return;
 
@@ -39,10 +39,10 @@ __global__ void warpaffine_kernel(
         float hy = 1 - ly;
         float hx = 1 - lx;
         float w1 = hy * hx, w2 = hy * lx, w3 = ly * hx, w4 = ly * lx;
-        uint8_t* v1 = const_value;
-        uint8_t* v2 = const_value;
-        uint8_t* v3 = const_value;
-        uint8_t* v4 = const_value;
+        uint8_t *v1 = const_value;
+        uint8_t *v2 = const_value;
+        uint8_t *v3 = const_value;
+        uint8_t *v4 = const_value;
 
         if (y_low >= 0) {
             if (x_low >= 0)
@@ -77,24 +77,24 @@ __global__ void warpaffine_kernel(
 
     //rgbrgbrgb to rrrgggbbb
     int area = dst_width * dst_height;
-    float* pdst_c0 = dst + dy * dst_width + dx;
-    float* pdst_c1 = pdst_c0 + area;
-    float* pdst_c2 = pdst_c1 + area;
+    float *pdst_c0 = dst + dy * dst_width + dx;
+    float *pdst_c1 = pdst_c0 + area;
+    float *pdst_c2 = pdst_c1 + area;
     *pdst_c0 = c0;
     *pdst_c1 = c1;
     *pdst_c2 = c2;
 }
 
 void preprocess_kernel_img(
-    uint8_t* src, int src_width, int src_height,
-    float* dst, int dst_width, int dst_height,
-    cudaStream_t stream) {
-    AffineMatrix s2d,d2s;
-    float scale = std::min(dst_height / (float)src_height, dst_width / (float)src_width);
+        uint8_t *src, int src_width, int src_height,
+        float *dst, int dst_width, int dst_height,
+        cudaStream_t stream) {
+    AffineMatrix s2d, d2s;
+    float scale = std::min(dst_height / (float) src_height, dst_width / (float) src_width);
 
     s2d.value[0] = scale;
     s2d.value[1] = 0;
-    s2d.value[2] = -scale * src_width  * 0.5  + dst_width * 0.5;
+    s2d.value[2] = -scale * src_width * 0.5 + dst_width * 0.5;
     s2d.value[3] = 0;
     s2d.value[4] = scale;
     s2d.value[5] = -scale * src_height * 0.5 + dst_height * 0.5;
@@ -107,10 +107,10 @@ void preprocess_kernel_img(
 
     int jobs = dst_height * dst_width;
     int threads = 256;
-    int blocks = ceil(jobs / (float)threads);
+    int blocks = ceil(jobs / (float) threads);
     warpaffine_kernel<<<blocks, threads, 0, stream>>>(
-        src, src_width*3, src_width,
-        src_height, dst, dst_width,
-        dst_height, 128, d2s, jobs);
+            src, src_width * 3, src_width,
+            src_height, dst, dst_width,
+            dst_height, 128, d2s, jobs);
 
 }
