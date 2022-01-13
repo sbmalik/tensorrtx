@@ -15,7 +15,7 @@ T readFromBuffer(const char *&buffer) {
     return val;
 }
 
-using namespace MPlugin;
+//using namespace MPlugin;
 
 static const char *M_PLUGIN_VERSION{"1"};
 static const char *M_PLUGIN_NAME{"MPlugin_TRT"};
@@ -24,7 +24,9 @@ namespace nvinfer1 {
     // Custom Plugin /////////////////////////////////////////////////////////////
     // ///////////////////////////////////////////////////////////////////////////
 
+//:wq
     REGISTER_TENSORRT_PLUGIN(MPluginCreator);
+//    nvinfer1::PluginRegistrar<MPluginCreator> pluginRegistrar{};
 
     MPlugin::MPlugin(const char *name)
             : mLayerName(name) {
@@ -34,11 +36,11 @@ namespace nvinfer1 {
             : mLayerName(name), mCopySize(copy_size) {
     }
 
-    MPlugin::MPlugin(const std::string name, const void *data, size_t length)
+    MPlugin::MPlugin(const char *name, const void *serialData, size_t serialLength)
             : mLayerName(name) {
-        const char *d = reinterpret_cast<const char *>(data), *a = d;
+        const char *d = reinterpret_cast<const char *>(serialData), *a = d;
         mCopySize = readFromBuffer<size_t>(d);
-        assert(d == a + length);
+        assert(d == a + serialLength);
     }
 
     int MPlugin::getNbOutputs() const noexcept {
@@ -128,6 +130,7 @@ namespace nvinfer1 {
         return false;
     };
 
+    //int32_t MPlugin::enqueue(int32_t batchSize, void const *const *inputs, void **outputs, void *workspace, cudaStream_t stream)
     int32_t MPlugin::enqueue(int32_t batchSize, void const *const *inputs, void *const *outputs, void *workspace,
                              cudaStream_t stream) noexcept {
         auto *output = reinterpret_cast<float *>(outputs[0]);
@@ -140,8 +143,8 @@ namespace nvinfer1 {
                 std::cout << "Cuda failure: " << ret;
                 abort();
             }
-            cudaStreamSynchronize(stream);
-            cudaDeviceSynchronize();
+            // cudaStreamSynchronize(stream);
+            //cudaDeviceSynchronize();
 
         }
         return 0;

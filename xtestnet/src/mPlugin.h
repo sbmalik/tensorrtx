@@ -8,9 +8,9 @@
 #include "vector"
 #include "cuda_runtime.h"
 
-namespace MPlugin {
-    static const float num_to_add = 2.0;
-}
+//namespace MPlugin {
+//    static const float num_to_add = 2.0;
+//}
 
 namespace nvinfer1 {
     class MPlugin : public IPluginV2Ext {
@@ -19,7 +19,7 @@ namespace nvinfer1 {
 
         MPlugin(const std::string name, size_t copy_size);
 
-        MPlugin(const std::string name, const void *serialData, size_t serialLength);
+        MPlugin(const char *name, const void *serialData, size_t serialLength);
 
         ~MPlugin();
 
@@ -72,8 +72,9 @@ namespace nvinfer1 {
 //        configureWithFormat(Dims const *inputDims, int32_t nbInputs, Dims const *outputDims, int32_t nbOutputs,
 //                            DataType type, PluginFormat format, int32_t maxBatchSize) noexcept;
 
+        //int32_t enqueue(int32_t batchSize, void const *const *inputs, void ** outputs, void *workspace, cudaStream_t stream) override;
         int32_t enqueue(int32_t batchSize, void const *const *inputs, void *const *outputs, void *workspace,
-                                cudaStream_t stream)  noexcept override;
+                        cudaStream_t stream) noexcept override;
 
         /* For Broadcast support
          * -- canBroadcastInputAcrossBatch()
@@ -135,7 +136,7 @@ namespace nvinfer1 {
         static PluginFieldCollection mFC;
         static std::vector<PluginField> mPluginAttributes;
     };
-
+//REGISTER_TENSORRT_PLUGIN(MPluginCreator);
 
 };
 

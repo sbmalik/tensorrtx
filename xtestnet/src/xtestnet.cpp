@@ -42,7 +42,7 @@ ICudaEngine *XTestNet::createEngine(IBuilder *builder, IBuilderConfig *config) {
     // ADDED CUSTOM PLUGIN /////
     // /////////////////////////
     //auto creator = getPluginRegistry()->registerCreator();
-    auto creator = getPluginRegistry()->getPluginCreator("MPlugin_TRT", "1");
+    auto creator = getPluginRegistry()->getPluginCreator("CustomPlugin", "1", "");
     assert(creator && "Plugin failed");
     //PluginFieldCollection pfc;
     //IPluginV2 *pluginObj = creator->createPlugin("MPlugin", &pfc);
@@ -73,6 +73,7 @@ ICudaEngine *XTestNet::createEngine(IBuilder *builder, IBuilderConfig *config) {
 }
 
 void XTestNet::serializeEngine() {
+    bool loaded = initLibNvInferPlugins(&gLogger, "");
     IBuilder *builder = createInferBuilder(gLogger);
     IBuilderConfig *config = builder->createBuilderConfig();
 
