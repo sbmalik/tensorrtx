@@ -48,10 +48,11 @@ int BatchTilePlugin::getNbOutputs() const noexcept {
 }
 
 Dims BatchTilePlugin::getOutputDimensions(int index, const Dims *inputs, int nbInputDims) noexcept {
-    assert(nbInputDims == 2);
-    assert(index == 0);
-    assert(inputs[1].nbDims == 4);
-    return Dims3(inputs[1].d[1], inputs[1].d[2], inputs[1].d[3]);
+//    assert(nbInputDims == 2);
+//    assert(index == 0);
+//    assert(inputs[1].nbDims == 4);
+//    return Dims3(inputs[1].d[1], inputs[1].d[2], inputs[1].d[3]);
+    return Dims3(inputs[0].d[1], inputs[0].d[2], inputs[0].d[3]);
 }
 
 int BatchTilePlugin::initialize() noexcept {
@@ -71,15 +72,15 @@ BatchTilePlugin::getOutputDataType(int index, const nvinfer1::DataType *inputTyp
 
 int BatchTilePlugin::enqueue(int batchSize, const void *const *inputs, void *const *outputs, void *,
                              cudaStream_t stream) noexcept {
-    float *output = reinterpret_cast<float *>(outputs[0]);
+//    float *output = reinterpret_cast<float *>(outputs[0]);
     // expand to batch size
-    for (int i = 0; i < batchSize; i++) {
-        auto ret = cudaMemcpyAsync(output + i * mCopySize, inputs[1], mCopySize, cudaMemcpyDeviceToDevice, stream);
-        if (ret != 0) {
-            std::cout << "Cuda failure: " << ret;
-            abort();
-        }
-    }
+//    for (int i = 0; i < batchSize; i++) {
+//        auto ret = cudaMemcpyAsync(output + i * mCopySize, inputs[1], mCopySize, cudaMemcpyDeviceToDevice, stream);
+//        if (ret != 0) {
+//            std::cout << "Cuda failure: " << ret;
+//            abort();
+//        }
+//    }
     return 0;
 }
 
@@ -110,14 +111,15 @@ void BatchTilePlugin::configurePlugin(const Dims *inputDims, int nbInputs, const
                                       const bool *inputIsBroadcast,
                                       const bool *outputIsBroadcast, PluginFormat floatFormat,
                                       int maxBatchSize) noexcept {
-    assert(nbOutputs == 1);
-    assert(inputDims[1].nbDims == 4);
-    assert(inputDims[1].d[0] == 1);
-    mCopySize = std::accumulate(inputDims[1].d, inputDims[1].d + 4, 1, std::multiplies<int>()) * sizeof(float);
+//    assert(nbOutputs == 1);
+//    assert(inputDims[1].nbDims == 4);
+//    assert(inputDims[1].d[0] == 1);
+//    mCopySize = std::accumulate(inputDims[1].d, inputDims[1].d + 4, 1, std::multiplies<int>()) * sizeof(float);
 }
 
 bool BatchTilePlugin::supportsFormat(DataType type, PluginFormat format) const noexcept {
-    return (type == DataType::kFLOAT && format == PluginFormat::kCHW32);
+//    return (type == DataType::kFLOAT && format == PluginFormat::kCHW32);
+    return type == DataType::kFLOAT;
 }
 
 const char *BatchTilePlugin::getPluginType() const noexcept {
