@@ -1,5 +1,4 @@
 #include "src/xtestnet.h"
-#include "NvInferPlugin.h"
 
 int main(int argc, char **argv) {
 

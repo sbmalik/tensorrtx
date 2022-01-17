@@ -42,11 +42,11 @@ ICudaEngine *XTestNet::createEngine(IBuilder *builder, IBuilderConfig *config) {
     // ADDED CUSTOM PLUGIN /////
     // /////////////////////////
     //auto creator = getPluginRegistry()->registerCreator();
-    auto creator = getPluginRegistry()->getPluginCreator("CustomPlugin", "1", "");
-    assert(creator && "Plugin failed");
+    auto creator_maker = getPluginRegistry()->getPluginCreator("BatchTilePlugin_TRT", "1");
+    assert(creator_maker);
     //PluginFieldCollection pfc;
-    //IPluginV2 *pluginObj = creator->createPlugin("MPlugin", &pfc);
-
+    //IPluginV2 *pluginObj = creator_maker->createPlugin("MPlugin", &pfc);
+//
     //ITensor *inputTensors[] = {softmax->getOutput(0)};
     //auto mPluginLayer = network->addPluginV2(inputTensors, 1, *pluginObj);
     //assert(mPluginLayer);
@@ -73,7 +73,7 @@ ICudaEngine *XTestNet::createEngine(IBuilder *builder, IBuilderConfig *config) {
 }
 
 void XTestNet::serializeEngine() {
-    bool loaded = initLibNvInferPlugins(&gLogger, "");
+    //bool loaded = initLibNvInferPlugins(&gLogger, "");
     IBuilder *builder = createInferBuilder(gLogger);
     IBuilderConfig *config = builder->createBuilderConfig();
 

@@ -10,9 +10,9 @@ set(CMAKE_BUILD_TYPE Debug)
 
 find_package(CUDA REQUIRED)
 
-if(WIN32)
-enable_language(CUDA)
-endif(WIN32)
+if (WIN32)
+    enable_language(CUDA)
+endif (WIN32)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 # include and link dirs of cuda and tensorrt, you need adapt them if yours are different
@@ -37,8 +37,8 @@ target_link_libraries(yolov5 cudart)
 target_link_libraries(yolov5 myplugins)
 target_link_libraries(yolov5 ${OpenCV_LIBS})
 
-if(UNIX)
-add_definitions(-O2 -pthread)
-endif(UNIX)
+if (UNIX)
+    add_definitions(-O2 -pthread)
+endif (UNIX)
 
 

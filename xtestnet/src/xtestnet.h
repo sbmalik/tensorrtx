@@ -5,10 +5,8 @@
 #include "logging.h"
 #include "utils.h"
 #include "layers.h"
-//#include "mPlugin.h"
-//#include "CustomPlugin.h"
-#include "CustomPluginS.h"
 #include "NvInferPlugin.h"
+#include "batchTilePlugin.h"
 
 class XTestNet {
 public:
